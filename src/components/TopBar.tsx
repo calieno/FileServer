@@ -1,14 +1,12 @@
-import { Search, Bell, Cloud } from 'lucide-react';
-
 export default function TopBar() {
   return (
     <header id="top-bar" className="h-16 w-full sticky top-0 z-40 bg-white/5 backdrop-blur-md border-b border-white/10 flex justify-between items-center px-6">
       <div className="flex items-center gap-8">
-        <span className="text-lg font-bold text-white">Server Explorer</span>
+        <span className="text-lg font-bold text-white">Explorador do Servidor</span>
         <nav className="bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-4 py-1.5 flex gap-6 text-sm font-medium">
-          <button className="text-white/60 hover:text-white transition-colors">Network</button>
+          <button className="text-white/60 hover:text-white transition-colors">Rede</button>
           <button className="text-white font-bold transition-all relative">
-            Storage
+            Armazenamento
             <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_#3b82f6]"></span>
           </button>
           <button className="text-white/60 hover:text-white transition-colors">Backups</button>
@@ -20,7 +18,7 @@ export default function TopBar() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-primary transition-colors" size={18} />
           <input
             type="text"
-            placeholder="Search directories, users, or logs..."
+            placeholder="Buscar diretórios, usuários ou logs..."
             className="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all shadow-inner"
           />
         </div>
@@ -36,7 +34,7 @@ export default function TopBar() {
           <div className="h-8 w-8 rounded-full border border-white/20 overflow-hidden bg-white/10 cursor-pointer hover:border-primary transition-all shadow-lg">
             <img
               src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop"
-              alt="Profile"
+              alt="Perfil"
               className="w-full h-full object-cover"
             />
           </div>

@@ -1,16 +1,12 @@
 import { Database, TrendingUp, RefreshCw, ShieldAlert, Upload, Trash2, Edit3, MoreVertical } from 'lucide-react';
-import type { StorageStat, ActivityLog, SecurityEvent } from '../types';
+import type { StorageStat, ActivityLog, SecurityEvent, DiskInfo } from '../types';
 import { motion } from 'motion/react';
-
-const storageStats: StorageStat[] = [
-  { name: 'Primary SSD Array (RAID 10)', used: '1.4TB', total: '1.6TB', percentage: 84 },
-  { name: 'Archive HDD Volume (SATA III)', used: '8.2TB', total: '24TB', percentage: 34 },
-];
+import { useEffect, useState } from 'react';
 
 const securityEvents: SecurityEvent[] = [
-  { id: '1', title: 'Multiple Failed Logins', description: 'IP: 192.168.1.104 - 12 attempts', timeLabel: '2 mins ago', type: 'error' },
-  { id: '2', title: 'Permission Escalation', description: "User 'j.smith' modified 'Accounting'", timeLabel: '45 mins ago', type: 'warning' },
-  { id: '3', title: 'New SSH Key Added', description: 'Administrator verified: Key-ED25519', timeLabel: '3 hours ago', type: 'info' },
+  { id: '1', title: 'Falhas de Login Múltiplas', description: 'IP: 192.168.1.104 - 12 tentativas', timeLabel: '2 min atrás', type: 'error' },
+  { id: '2', title: 'Escalação de Privilégio', description: "Usuário 'j.smith' modificou 'Contabilidade'", timeLabel: '45 min atrás', type: 'warning' },
+  { id: '3', title: 'Nova Chave SSH Adicionada', description: 'Administrador verificado: Key-ED25519', timeLabel: '3 horas atrás', type: 'info' },
 ];
 
 const activityLogs: ActivityLog[] = [
@@ -20,16 +16,25 @@ const activityLogs: ActivityLog[] = [
 ];
 
 export default function Dashboard() {
+  const [disks, setDisks] = useState<DiskInfo[]>([]);
+
+  useEffect(() => {
+    fetch('http://localhost:3001/api/system/disk')
+      .then(res => res.json())
+      .then(data => setDisks(data))
+      .catch(err => console.error(err));
+  }, []);
+
   return (
     <div id="dashboard-content" className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white">System Overview</h2>
-          <p className="text-white/60 font-medium">Real-time status of Node-04 Enterprise File Server</p>
+          <h2 className="text-3xl font-bold tracking-tight text-white">Visão Geral do Sistema</h2>
+          <p className="text-white/60 font-medium">Status em tempo real do Servidor de Arquivos Debian 11</p>
         </div>
         <div className="flex gap-2">
-          <button className="px-4 py-2 border border-white/20 bg-white/5 text-white rounded-xl text-sm font-semibold hover:bg-white/10 transition-colors shadow-sm">Generate Report</button>
-          <button className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-primary/20">Server Maintenance</button>
+          <button className="px-4 py-2 border border-white/20 bg-white/5 text-white rounded-xl text-sm font-semibold hover:bg-white/10 transition-colors shadow-sm">Gerar Relatório</button>
+          <button className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-primary/20">Manutenção do Servidor</button>
         </div>
       </div>
 
@@ -41,26 +46,26 @@ export default function Dashboard() {
           className="col-span-12 lg:col-span-8 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl"
         >
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-lg font-bold text-white">Storage Distribution</h3>
+            <h3 className="text-lg font-bold text-white">Distribuição de Armazenamento</h3>
             <div className="flex items-center gap-2 text-primary font-bold text-xs bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
               <Database size={14} />
-              84% Capacity
+              {disks[0]?.usePercent || '0%'} de Capacidade
             </div>
           </div>
 
           <div className="space-y-8">
-            {storageStats.map((stat, i) => (
+            {disks.map((disk, i) => (
               <div key={i}>
                 <div className="flex justify-between items-end mb-3">
-                  <span className="text-sm font-semibold text-white/70">{stat.name}</span>
+                  <span className="text-sm font-semibold text-white/70">{disk.device} ({disk.mount})</span>
                   <span className="text-xs font-mono font-bold text-white/50 tracking-wider">
-                    {stat.used} <span className="opacity-40">/</span> {stat.total}
+                    {disk.used} <span className="opacity-40">/</span> {disk.size}
                   </span>
                 </div>
                 <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/10">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: `${stat.percentage}%` }}
+                    animate={{ width: disk.usePercent }}
                     transition={{ duration: 1, delay: i * 0.2 }}
                     className={`h-full rounded-full ${i === 0 ? 'bg-primary shadow-[0_0_15px_rgba(59,130,246,0.6)]' : 'bg-white/20'}`}
                   />
@@ -95,7 +100,7 @@ export default function Dashboard() {
            className="col-span-12 lg:col-span-4 bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col"
         >
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-lg font-bold text-white">Security Pulse</h3>
+            <h3 className="text-lg font-bold text-white">Pulso de Segurança</h3>
             <div className="p-2 bg-accent/10 text-accent rounded-xl border border-accent/20">
               <ShieldAlert size={20} />
             </div>
@@ -125,7 +130,7 @@ export default function Dashboard() {
           </div>
           
           <button className="mt-8 w-full py-2.5 text-white text-sm font-bold border border-white/20 rounded-2xl hover:bg-white/5 transition-all">
-            View Threat Map
+            Ver Mapa de Ameaças
           </button>
         </motion.div>
 
@@ -137,11 +142,11 @@ export default function Dashboard() {
           className="col-span-12 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl overflow-hidden shadow-2xl"
         >
           <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center">
-            <h3 className="text-lg font-bold text-white">Recent Activity Log</h3>
+            <h3 className="text-lg font-bold text-white">Log de Atividades Recentes</h3>
             <select className="bg-transparent border-none text-xs font-bold text-white/50 outline-none cursor-pointer hover:text-white transition-colors">
-              <option>All Operations</option>
+              <option>Todas as Operações</option>
               <option>Uploads</option>
-              <option>Deletions</option>
+              <option>Exclusões</option>
             </select>
           </div>
           
@@ -149,11 +154,11 @@ export default function Dashboard() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white/5 border-b border-white/10 text-white/40">
-                  <th className="px-6 py-4 text-[10px] uppercase font-bold tracking-widest">User</th>
-                  <th className="px-6 py-4 text-[10px] uppercase font-bold tracking-widest">Operation</th>
-                  <th className="px-6 py-4 text-[10px] uppercase font-bold tracking-widest">File Path</th>
+                  <th className="px-6 py-4 text-[10px] uppercase font-bold tracking-widest">Usuário</th>
+                  <th className="px-6 py-4 text-[10px] uppercase font-bold tracking-widest">Operação</th>
+                  <th className="px-6 py-4 text-[10px] uppercase font-bold tracking-widest">Caminho do Arquivo</th>
                   <th className="px-6 py-4 text-[10px] uppercase font-bold tracking-widest">Status</th>
-                  <th className="px-6 py-4 text-[10px] uppercase font-bold tracking-widest">Timestamp</th>
+                  <th className="px-6 py-4 text-[10px] uppercase font-bold tracking-widest">Horário</th>
                   <th className="px-6 py-4"></th>
                 </tr>
               </thead>
@@ -202,7 +207,7 @@ export default function Dashboard() {
           
           <div className="px-6 py-4 border-t border-white/10 bg-white/5 backdrop-blur-sm flex justify-center">
             <button className="text-xs font-bold text-white/60 hover:text-white hover:underline underline-offset-4 tracking-tight transition-all">
-              View Full Audit Logs
+              Ver Logs de Auditoria Completos
             </button>
           </div>
         </motion.div>

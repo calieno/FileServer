@@ -9,6 +9,8 @@ import TopBar from './components/TopBar';
 import Dashboard from './components/Dashboard';
 import FileExplorer from './components/FileExplorer';
 import PermissionsView from './components/PermissionsView';
+import DiskManagement from './components/DiskManagement';
+import QuotaManagement from './components/QuotaManagement';
 import type { Screen } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -47,31 +49,23 @@ export default function App() {
       case 'File Explorer':
         return (
           <div key="explorer">
-            <div className="flex justify-between items-center mb-6">
-               <p className="text-xs font-bold text-on-surface-variant flex items-center gap-2">
-                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                 Showing standard file system view
-                 <button 
-                  onClick={() => setShowPermissions(true)}
-                  className="text-primary hover:underline ml-2"
-                 >
-                   Open Permissions Editor Mock →
-                 </button>
-               </p>
-            </div>
-            <FileExplorer />
+            <FileExplorer onOpenPermissions={() => setShowPermissions(true)} />
           </div>
         );
+      case 'Disk Management':
+        return <DiskManagement key="disk" />;
+      case 'Quotas':
+        return <QuotaManagement key="quotas" />;
       case 'User Management':
         return (
           <div key="users" className="flex items-center justify-center h-64 bg-white/5 backdrop-blur-xl border-2 border-dashed border-white/10 rounded-[40px] shadow-2xl">
-            <p className="text-white/40 font-black uppercase tracking-[0.3em] text-sm">User Management Interface</p>
+            <p className="text-white/40 font-black uppercase tracking-[0.3em] text-sm">Interface de Gestão de Usuários</p>
           </div>
         );
       case 'System Logs':
         return (
           <div key="logs" className="flex items-center justify-center h-64 bg-white/5 backdrop-blur-xl border-2 border-dashed border-white/10 rounded-[40px] shadow-2xl">
-            <p className="text-white/40 font-black uppercase tracking-[0.3em] text-sm">System Audit Logs</p>
+            <p className="text-white/40 font-black uppercase tracking-[0.3em] text-sm">Logs de Auditoria do Sistema</p>
           </div>
         );
     }

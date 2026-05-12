@@ -10,17 +10,21 @@ const files: FileItem[] = [
   { id: '5', name: 'Financial_Reports', type: 'folder', size: '--', owner: 'HR Dept', ownerInitial: 'HR', lastModified: 'Oct 20, 2023, 09:00 AM', readOnly: true },
 ];
 
-export default function FileExplorer() {
+interface FileExplorerProps {
+  onOpenPermissions: (fileName: string) => void;
+}
+
+export default function FileExplorer({ onOpenPermissions }: FileExplorerProps) {
   return (
     <div id="file-explorer-content" className="space-y-6">
       {/* Breadcrumbs & Actions */}
       <div className="flex items-center justify-between">
         <nav className="flex items-center gap-2 text-sm">
-          <button className="text-white/60 hover:text-white transition-colors font-medium">Home</button>
+          <button className="text-white/60 hover:text-white transition-colors font-medium">Início</button>
           <ChevronRight size={14} className="text-white/30" />
-          <button className="text-white/60 hover:text-white transition-colors font-medium">Projects</button>
+          <button className="text-white/60 hover:text-white transition-colors font-medium">Projetos</button>
           <ChevronRight size={14} className="text-white/30" />
-          <span className="text-white font-bold">Client_A</span>
+          <span className="text-white font-bold">Cliente_A</span>
         </nav>
         
         <div className="flex gap-2">
@@ -30,7 +34,7 @@ export default function FileExplorer() {
           </button>
           <button className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-2xl text-sm font-bold text-white/70 hover:bg-white/10 hover:text-white transition-all shadow-sm">
             <FolderPlus size={16} />
-            New Folder
+            Nova Pasta
           </button>
         </div>
       </div>
@@ -38,8 +42,8 @@ export default function FileExplorer() {
       {/* Directory Stats Panel */}
       <div className="grid grid-cols-12 gap-4">
         {[
-          { icon: HardDrive, label: 'Space Used', value: '12.4 GB', progress: 45, color: 'text-primary', bg: 'bg-primary/10' },
-          { icon: Share2, label: 'Shared Folders', value: '8', subValue: 'Active Access', color: 'text-white/40', bg: 'bg-white/5' },
+          { icon: HardDrive, label: 'Espaço Usado', value: '12.4 GB', progress: 45, color: 'text-primary', bg: 'bg-primary/10' },
+          { icon: Share2, label: 'Pastas Compartilhadas', value: '8', subValue: 'Acessos Ativos', color: 'text-white/40', bg: 'bg-white/5' },
         ].map((stat, i) => (
           <div key={i} className="col-span-12 md:col-span-3 p-5 bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl shadow-xl">
             <div className="flex items-center gap-3 mb-4">
@@ -65,18 +69,18 @@ export default function FileExplorer() {
         
         <div className="col-span-12 md:col-span-6 p-5 bg-gradient-to-br from-indigo-600/20 to-blue-600/20 backdrop-blur-xl border border-white/20 rounded-3xl flex justify-between items-center relative overflow-hidden group shadow-2xl">
           <div className="relative z-10">
-            <span className="text-xs font-bold text-primary uppercase tracking-widest leading-relaxed">Directory Health</span>
-            <p className="text-3xl font-bold text-white mt-1">Optimized</p>
+            <span className="text-xs font-bold text-primary uppercase tracking-widest leading-relaxed">Saúde do Diretório</span>
+            <p className="text-3xl font-bold text-white mt-1">Otimizado</p>
             <div className="flex items-center gap-2 mt-2">
               <span className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.8)] animate-pulse"></span>
-              <span className="text-xs font-medium text-white/60">All backup protocols verified</span>
+              <span className="text-xs font-medium text-white/60">Todos os protocolos de backup verificados</span>
             </div>
           </div>
           <div className="opacity-[0.05] absolute right-[-20px] top-[-20px] transform group-hover:scale-110 transition-transform duration-700">
             <ShieldCheck size={160} />
           </div>
           <button className="relative z-10 px-6 py-2.5 bg-primary text-white text-xs font-black rounded-2xl hover:brightness-110 transition-all shadow-xl shadow-primary/20 mt-auto uppercase tracking-tighter">
-            Run Optimization
+            Rodar Otimização
           </button>
         </div>
       </div>
@@ -91,11 +95,11 @@ export default function FileExplorer() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-white/30">
-                <th className="p-4 text-[10px] font-bold uppercase tracking-widest">Name</th>
-                <th className="p-4 text-[10px] font-bold uppercase tracking-widest">Size</th>
-                <th className="p-4 text-[10px] font-bold uppercase tracking-widest">Owner</th>
-                <th className="p-4 text-[10px] font-bold uppercase tracking-widest">Last Modified</th>
-                <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-right">Actions</th>
+                <th className="p-4 text-[10px] font-bold uppercase tracking-widest">Nome</th>
+                <th className="p-4 text-[10px] font-bold uppercase tracking-widest">Tamanho</th>
+                <th className="p-4 text-[10px] font-bold uppercase tracking-widest">Proprietário</th>
+                <th className="p-4 text-[10px] font-bold uppercase tracking-widest">Última Modificação</th>
+                <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -112,7 +116,7 @@ export default function FileExplorer() {
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-white group-hover:text-primary transition-colors">{file.name}</span>
                         {file.readOnly && (
-                          <span className="px-2 py-0.5 bg-white/10 text-white/40 text-[9px] rounded-full uppercase font-bold tracking-widest border border-white/10">Read-Only</span>
+                          <span className="px-2 py-0.5 bg-white/10 text-white/40 text-[9px] rounded-full uppercase font-bold tracking-widest border border-white/10">Somente Leitura</span>
                         )}
                       </div>
                     </div>
@@ -128,8 +132,14 @@ export default function FileExplorer() {
                   </td>
                   <td className="p-4 text-xs font-mono font-bold text-white/20">{file.lastModified}</td>
                   <td className="p-4 text-right">
-                    <button className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[11px] font-bold text-white/60 hover:text-white hover:border-white/30 transition-all">
-                      Permissions
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenPermissions(file.name);
+                      }}
+                      className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[11px] font-bold text-white/60 hover:text-white hover:border-white/30 transition-all"
+                    >
+                      Permissões
                     </button>
                   </td>
                 </tr>
@@ -139,7 +149,7 @@ export default function FileExplorer() {
         </div>
         
         <div className="p-4 flex items-center justify-between bg-white/5 border-t border-white/10 backdrop-blur-md">
-          <span className="text-[11px] font-bold text-white/20 tracking-tight">Showing 5 of 42 items</span>
+          <span className="text-[11px] font-bold text-white/20 tracking-tight">Mostrando 5 de 42 itens</span>
           <div className="flex gap-2">
             <button className="p-2 border border-white/10 rounded-2xl bg-white/5 text-white/20 disabled:opacity-30 transition-all" disabled>
               <ChevronLeft size={16} />
@@ -158,17 +168,17 @@ export default function FileExplorer() {
             <Info size={28} />
           </div>
           <div>
-            <h4 className="text-lg font-bold text-white">Selection Properties</h4>
-            <p className="text-sm font-medium text-white/40">Select a file to view detailed metadata and access history.</p>
+            <h4 className="text-lg font-bold text-white">Propriedades da Seleção</h4>
+            <p className="text-sm font-medium text-white/40">Selecione um arquivo para ver metadados detalhados e histórico de acesso.</p>
           </div>
         </div>
         <div className="flex gap-8 pr-4">
           <div className="flex flex-col items-center">
-            <span className="text-[10px] font-bold uppercase text-white/30 tracking-widest mb-2">Encrypted</span>
+            <span className="text-[10px] font-bold uppercase text-white/30 tracking-widest mb-2">Criptografado</span>
             <Lock size={20} className="text-green-500 fill-green-500/10" />
           </div>
           <div className="flex flex-col items-center">
-            <span className="text-[10px] font-bold uppercase text-white/30 tracking-widest mb-2">Indexed</span>
+            <span className="text-[10px] font-bold uppercase text-white/30 tracking-widest mb-2">Indexado</span>
             <CheckCircle size={20} className="text-primary fill-primary/10" />
           </div>
         </div>

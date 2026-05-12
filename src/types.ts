@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type Screen = 'Dashboard' | 'File Explorer' | 'User Management' | 'System Logs';
+export type Screen = 'Dashboard' | 'File Explorer' | 'Disk Management' | 'Quotas' | 'User Management' | 'System Logs';
 
 export interface StorageStat {
   name: string;
@@ -39,4 +39,21 @@ export interface FileItem {
   ownerInitial: string;
   lastModified: string;
   readOnly?: boolean;
+}
+
+export interface DiskInfo {
+  device: string;
+  mount: string;
+  size: string;
+  used: string;
+  avail: string;
+  usePercent: string;
+}
+
+export interface QuotaInfo {
+  user: string;
+  used: string;
+  soft: string;
+  hard: string;
+  grace: string;
 }
