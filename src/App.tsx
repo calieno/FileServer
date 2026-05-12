@@ -11,12 +11,15 @@ import FileExplorer from './components/FileExplorer';
 import PermissionsView from './components/PermissionsView';
 import DiskManagement from './components/DiskManagement';
 import QuotaManagement from './components/QuotaManagement';
+import Login from './components/Login';
 import type { Screen } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>('Dashboard');
   const [showPermissions, setShowPermissions] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<{ username: string; displayName: string } | null>(null);
 
   // Helper to render current screen with animation
   const renderScreen = () => {
@@ -71,36 +74,63 @@ export default function App() {
     }
   };
 
+  const handleLogin = (userData: { username: string; displayName: string }) => {
+    setIsAuthenticated(true);
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUser(null);
+  };
+
   return (
     <div className="flex min-h-screen bg-surface">
       {/* Background Glow Overlay */}
       <div className="fixed inset-0 backdrop-blur-[120px] pointer-events-none z-0"></div>
 
-      <Sidebar 
-        activeScreen={activeScreen} 
-        onScreenChange={(s) => {
-          setActiveScreen(s);
-          setShowPermissions(false);
-        }} 
-      />
-      
-      <div className="flex-1 ml-64 flex flex-col min-h-screen relative z-10">
-        <TopBar />
-        
-        <main className="flex-1 p-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={showPermissions ? 'perm-view' : activeScreen}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {renderScreen()}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-      </div>
+      {!isAuthenticated ? (
+        // Login Screen
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          className="flex items-center justify-center min-h-screen bg-surface"
+        >
+          <Login onLogin={handleLogin} />
+        </motion.div>
+      ) : (
+        // Main Application
+        <>
+          <Sidebar 
+            activeScreen={activeScreen} 
+            onScreenChange={(s) => {
+              setActiveScreen(s);
+              setShowPermissions(false);
+            }}
+            onLogout={handleLogout}
+            user={user}
+          />
+          
+          <div className="flex-1 ml-64 flex flex-col min-h-screen relative z-10">
+            <TopBar user={user} onLogout={handleLogout} />
+            
+            <main className="flex-1 p-8">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={showPermissions ? 'perm-view' : activeScreen}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {renderScreen()}
+                </motion.div>
+              </AnimatePresence>
+            </main>
+          </div>
+        </>
+      )}
     </div>
   );
 }

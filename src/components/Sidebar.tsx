@@ -4,9 +4,11 @@ import type { Screen } from '../types';
 interface SidebarProps {
   activeScreen: Screen;
   onScreenChange: (screen: Screen) => void;
+  onLogout?: () => void;
+  user?: { username: string; displayName: string };
 }
 
-export default function Sidebar({ activeScreen, onScreenChange }: SidebarProps) {
+export default function Sidebar({ activeScreen, onScreenChange, onLogout, user }: SidebarProps) {
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard },
     { name: 'File Explorer', icon: FolderOpen, label: 'Explorador de Arquivos' },
@@ -55,17 +57,28 @@ export default function Sidebar({ activeScreen, onScreenChange }: SidebarProps) 
           Suporte
         </button>
 
-        <div className="flex items-center gap-3 p-3 mt-4 bg-white/5 rounded-2xl border border-white/10">
-          <img
-            src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop"
-            alt="Avatar Admin"
-            className="w-9 h-9 rounded-full object-cover border border-white/20"
-          />
-          <div className="overflow-hidden">
-            <p className="text-sm font-semibold text-white truncate">Admin User</p>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Superusuário</p>
-          </div>
-        </div>
+         <div className="flex items-center gap-3 p-3 mt-4 bg-white/5 rounded-2xl border border-white/10">
+           <img
+             src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop"
+             alt="Avatar Admin"
+             className="w-9 h-9 rounded-full object-cover border border-white/20"
+           />
+           <div className="overflow-hidden flex-1">
+             <p className="text-sm font-semibold text-white truncate">
+               {user?.displayName || 'Admin User'}
+             </p>
+             <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Superusuário</p>
+           </div>
+           {onLogout && (
+             <button
+               onClick={onLogout}
+               className="p-1.5 text-white/40 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+               title="Sair"
+             >
+               <LogOut size={16} />
+             </button>
+           )}
+         </div>
       </div>
     </aside>
   );
