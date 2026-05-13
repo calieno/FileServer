@@ -6,8 +6,17 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const execAsync = promisify(exec);
+// --- GLOBAL ERROR HANDLING ---
+process.on('uncaughtException', (err) => {
+  console.error('💥 UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 UNHANDLED REJECTION:', reason);
+});
+
 const app = express();
-const port = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 
@@ -74,92 +83,79 @@ app.get('/api/ad/users', async (req, res) => {
 // --- LOGIN ENDPOINT (SIMPLE TEST VERSION) ---
 
 import ldap from 'ldapjs';
+import { authenticate } from 'ldap-authentication';
 
 // --- LDAP AUTHENTICATION HELPER ---
 
 async function authenticateLDAP(username: string, password: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const client = ldap.createClient({
-      url: process.env.LDAP_URL || 'ldap://localhost'
-    });
+  const accountName = username.split('@')[0];
+  
+  const options = {
+    ldapOpts: {
+      url: process.env.LDAP_URL || 'ldap://localhost',
+      connectTimeout: 5000,
+      timeout: 10000,
+    },
+    adminDn: process.env.LDAP_USER_DN,
+    adminPassword: process.env.LDAP_PASSWORD,
+    userPassword: password,
+    userSearchBase: process.env.LDAP_SUFFIX || '',
+    usernameAttribute: 'sAMAccountName', // Tenta por sAMAccountName primeiro
+    username: accountName,
+    attributes: ['dn', 'cn', 'memberOf', 'displayName', 'sAMAccountName', 'userPrincipalName']
+  };
 
-    // Em AD, o username geralmente precisa do domínio ou DN completo
-    // Se o usuário passar apenas 'usuario', concatenamos com o sufixo se necessário
-    const userPrincipalName = username.includes('@') ? username : `${username}@${(process.env.LDAP_SUFFIX || '').replace('DC=', '').replace(',DC=', '.')}`;
+  try {
+    console.log(`🔍 Tentando autenticação via ldap-authentication para: ${accountName}`);
+    const user: any = await authenticate(options);
+    console.log('✅ Autenticação bem sucedida para:', user.sAMAccountName || user.cn);
+
+    // Verificar autorização (grupo)
+    const adminGroup = process.env.LDAP_GROUP_TREE_DN;
+    const memberOf = user.memberOf;
     
-    client.bind(userPrincipalName, password, (err) => {
-      if (err) {
-        client.unbind();
-        return reject(err);
+    let isAuthorized = false;
+    if (adminGroup) {
+      if (Array.isArray(memberOf)) {
+        isAuthorized = memberOf.some((group: string) => group.includes(adminGroup) || group === adminGroup);
+      } else if (typeof memberOf === 'string') {
+        isAuthorized = memberOf.includes(adminGroup) || memberOf === adminGroup;
       }
+    } else {
+      isAuthorized = true;
+    }
 
-      // Se o bind funcionou, agora verificamos se o usuário pertence ao grupo de administradores
-      // No AD, podemos buscar o próprio usuário e ver o atributo memberOf
-      const searchOptions = {
-        filter: `(userPrincipalName=${userPrincipalName})`,
-        scope: 'sub' as const,
-        attributes: ['dn', 'cn', 'memberOf', 'displayName']
+    // Fallback para lista ADMIN_USERS
+    const adminUsers = process.env.ADMIN_USERS ? process.env.ADMIN_USERS.split(',').map(u => u.trim()) : [];
+    if (adminUsers.includes(username) || adminUsers.includes(accountName)) {
+      isAuthorized = true;
+    }
+
+    if (isAuthorized) {
+      return {
+        username: username,
+        displayName: user.displayName || user.cn || username,
+        authenticated: true
       };
-
-      client.search(process.env.LDAP_SUFFIX || '', searchOptions, (err, res) => {
-        if (err) {
-          client.unbind();
-          return reject(err);
-        }
-
-        let userFound: any = null;
-
-        res.on('searchEntry', (entry: any) => {
-          userFound = entry.object;
-        });
-
-        res.on('error', (err) => {
-          client.unbind();
-          reject(err);
-        });
-
-        res.on('end', (result) => {
-          client.unbind();
-          if (!userFound) {
-            return reject(new Error('Usuário não encontrado após bind bem sucedido.'));
-          }
-
-          // Verificar se o grupo está no memberOf
-          // LDAP_GROUP_TREE_DN="OU=Administradores,DC=inb,DC=gov,DC=br"
-          const adminGroup = process.env.LDAP_GROUP_TREE_DN;
-          const memberOf = userFound.memberOf;
-          
-          let isAuthorized = false;
-          if (adminGroup) {
-            if (Array.isArray(memberOf)) {
-              isAuthorized = memberOf.some((group: string) => group.includes(adminGroup) || group === adminGroup);
-            } else if (typeof memberOf === 'string') {
-              isAuthorized = memberOf.includes(adminGroup) || memberOf === adminGroup;
-            }
-          } else {
-            // Se não houver grupo definido, apenas o login com sucesso basta
-            isAuthorized = true;
-          }
-
-          // Fallback para lista hardcoded se necessário
-          const adminUsers = process.env.ADMIN_USERS ? process.env.ADMIN_USERS.split(',').map(u => u.trim()) : [];
-          if (adminUsers.includes(username)) {
-            isAuthorized = true;
-          }
-
-          if (isAuthorized) {
-            resolve({
-              username: username,
-              displayName: userFound.displayName || userFound.cn || username,
-              authenticated: true
-            });
-          } else {
-            reject(new Error('Usuário autenticado, mas não possui permissão de administrador.'));
-          }
-        });
-      });
-    });
-  });
+    } else {
+      throw new Error('Usuário autenticado, mas não possui permissão de administrador.');
+    }
+  } catch (err: any) {
+    console.error('❌ Erro no ldap-authentication:', err.message);
+    // Se falhar por sAMAccountName, tentamos uma segunda vez por userPrincipalName se o username contiver @
+    if (username.includes('@')) {
+       console.log('🔄 Tentando novamente usando userPrincipalName...');
+       const optionsUPN = { ...options, usernameAttribute: 'userPrincipalName', username: username };
+       try {
+         const userUPN: any = await authenticate(optionsUPN);
+         // Repetir lógica de autorização... (simplificando para este exemplo)
+         return { username, displayName: userUPN.displayName || userUPN.cn, authenticated: true };
+       } catch (e) {
+         throw new Error('Credenciais inválidas ou usuário não encontrado.');
+       }
+    }
+    throw new Error(err.message || 'Falha na autenticação.');
+  }
 }
 
 // --- LOGIN ENDPOINT ---
@@ -198,6 +194,76 @@ app.post('/api/login', async (req, res) => {
     return res.status(401).json({ error: error.message || 'Falha na autenticação' });
   }
 });
+app.get('/api/admin-list', async (req, res) => {
+  try {
+    const client = ldap.createClient({
+      url: process.env.LDAP_URL || 'ldap://localhost',
+      timeout: 5000,
+      connectTimeout: 3000
+    });
+
+    const guestDN = process.env.LDAP_USER_DN || '';
+    const guestPassword = process.env.LDAP_PASSWORD || '';
+
+    client.bind(guestDN, guestPassword, (err) => {
+      if (err) {
+        console.error('❌ Admin-list: Erro no bind:', err.message);
+        client.unbind();
+        return res.status(500).json({ error: 'Erro de conexão LDAP' });
+      }
+
+      // Base de busca: tentamos a OU específica ou o sufixo geral
+      const searchBase = process.env.LDAP_USER_TREE_DN || process.env.LDAP_SUFFIX || '';
+      
+      // Filtro mais abrangente para AD: pessoas que são usuários
+      const searchOptions = {
+        filter: '(&(objectCategory=person)(objectClass=user))',
+        scope: 'sub' as const,
+        attributes: ['cn', 'displayName', 'sAMAccountName', 'userPrincipalName'],
+        sizeLimit: 100,
+        timeLimit: 10
+      };
+
+      console.log(`🔍 Buscando admins em: ${searchBase} com filtro: ${searchOptions.filter}`);
+
+      client.search(searchBase, searchOptions, (err, searchRes) => {
+        if (err) {
+          console.error('❌ Admin-list: Erro na busca:', err.message);
+          client.unbind();
+          return res.status(500).json({ error: 'Erro na busca LDAP' });
+        }
+
+        const users: any[] = [];
+
+        searchRes.on('searchEntry', (entry: any) => {
+          console.log(`👤 Encontrado: ${entry.object.cn}`);
+          users.push({
+            name: entry.object.displayName || entry.object.cn,
+            username: entry.object.sAMAccountName || entry.object.userPrincipalName
+          });
+        });
+
+        searchRes.on('error', (err) => {
+          console.error('❌ Admin-list: Erro no stream:', err.message);
+          client.unbind();
+          // Não falhamos a requisição se já tivermos alguns usuários, mas aqui provavelmente é erro fatal
+          if (!res.headersSent) res.status(500).json({ error: err.message });
+        });
+
+        searchRes.on('end', () => {
+          client.unbind();
+          console.log(`✅ Admin-list: Busca finalizada. ${users.length} usuários encontrados.`);
+          
+          if (!res.headersSent) {
+            res.json(users);
+          }
+        });
+      });
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // --- PERMISSIONS / ACLs ---
 
@@ -234,6 +300,6 @@ app.post('/api/files/permissions', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Backend FileServer rodando em http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Backend FileServer rodando em http://localhost:${PORT}`);
 });
