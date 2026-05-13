@@ -10,24 +10,19 @@ export default function Login({ onLogin }: LoginProps) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [renderCount, setRenderCount] = useState(0);
-
-  // Debug: Verificar se o componente está renderizando
-  console.log('🔍 Login component renderizado - Count:', renderCount);
+  // Removed renderCount state and related debug logs
   
   // Debug: Verificar props
   console.log('🔍 Login props:', { onLogin: typeof onLogin });
 
   useEffect(() => {
-    setRenderCount(prev => prev + 1);
-    console.log('🔍 Login useEffect executado - Render count:', renderCount + 1);
-    
-    // Verificar se o onLogin é uma função
+    console.log('🔍 Login useEffect executed');
+    // Verify onLogin is a function
     if (typeof onLogin !== 'function') {
-      console.error('❌ ERRO CRÍTICO: onLogin não é uma função:', typeof onLogin, onLogin);
+      console.error('❌ CRITICAL ERROR: onLogin is not a function:', typeof onLogin, onLogin);
       setError('Erro na configuração do sistema');
     }
-  }, [onLogin, renderCount]);
+  }, [onLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

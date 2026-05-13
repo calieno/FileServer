@@ -246,6 +246,3 @@ export default function QuotaManagement() {
     </div>
   );
 }
-    </div>
-  );
-}

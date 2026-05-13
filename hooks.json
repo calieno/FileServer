@@ -1,0 +1,7 @@
+[
+  {
+    "id": "redeploy-frontend",
+    "execute-command": "/opt/unishell-manager/frontend/deploy.sh",
+    "command-working-directory": "/opt/unishell-manager/frontend"
+  }
+]
