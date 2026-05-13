@@ -97,7 +97,17 @@ export default function App() {
           exit={{ opacity: 0, scale: 0.98 }}
           className="flex items-center justify-center min-h-screen bg-surface"
         >
-          <Login onLogin={handleLogin} />
+          <div className="w-full max-w-md p-4">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-white mb-2">
+                FileGuard Pro
+              </h1>
+              <p className="text-white/60">
+                Sistema de Gerenciamento de Servidor de Arquivos
+              </p>
+            </div>
+            <Login onLogin={handleLogin} />
+          </div>
         </motion.div>
       ) : (
         // Main Application
