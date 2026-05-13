@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { Shield, User, Lock } from 'lucide-react';
 
 interface LoginProps {
@@ -24,31 +24,27 @@ export default function Login({ onLogin }: LoginProps) {
     }
   }, [onLogin]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log('🔍 handleSubmit chamado');
-    
     setIsLoading(true);
     setError('');
-
-    // Simular login para teste
-    setTimeout(() => {
-      console.log('🔍 Login simulado iniciado');
-      try {
-        const userData = {
-          username: username || 'admin',
-          displayName: username || 'Administrador Teste'
-        };
-        console.log('🔍 Enviando dados para onLogin:', userData);
-        onLogin(userData);
-        console.log('🔍 onLogin chamado com sucesso');
-      } catch (err) {
-        console.error('❌ ERRO ao chamar onLogin:', err);
-        setError('Erro ao processar login');
-      } finally {
-        setIsLoading(false);
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        onLogin({ username: data.user.username, displayName: data.user.displayName });
+      } else {
+        setError(data.error || 'Erro ao fazer login');
       }
-    }, 1000);
+    } catch (err) {
+      setError('Erro ao conectar ao servidor');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Debug: Verificar estado do componente

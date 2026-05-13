@@ -73,26 +73,129 @@ app.get('/api/ad/users', async (req, res) => {
 
 // --- LOGIN ENDPOINT (SIMPLE TEST VERSION) ---
 
+import ldap from 'ldapjs';
+
+// --- LDAP AUTHENTICATION HELPER ---
+
+async function authenticateLDAP(username: string, password: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const client = ldap.createClient({
+      url: process.env.LDAP_URL || 'ldap://localhost'
+    });
+
+    // Em AD, o username geralmente precisa do domínio ou DN completo
+    // Se o usuário passar apenas 'usuario', concatenamos com o sufixo se necessário
+    const userPrincipalName = username.includes('@') ? username : `${username}@${(process.env.LDAP_SUFFIX || '').replace('DC=', '').replace(',DC=', '.')}`;
+    
+    client.bind(userPrincipalName, password, (err) => {
+      if (err) {
+        client.unbind();
+        return reject(err);
+      }
+
+      // Se o bind funcionou, agora verificamos se o usuário pertence ao grupo de administradores
+      // No AD, podemos buscar o próprio usuário e ver o atributo memberOf
+      const searchOptions = {
+        filter: `(userPrincipalName=${userPrincipalName})`,
+        scope: 'sub' as const,
+        attributes: ['dn', 'cn', 'memberOf', 'displayName']
+      };
+
+      client.search(process.env.LDAP_SUFFIX || '', searchOptions, (err, res) => {
+        if (err) {
+          client.unbind();
+          return reject(err);
+        }
+
+        let userFound: any = null;
+
+        res.on('searchEntry', (entry: any) => {
+          userFound = entry.object;
+        });
+
+        res.on('error', (err) => {
+          client.unbind();
+          reject(err);
+        });
+
+        res.on('end', (result) => {
+          client.unbind();
+          if (!userFound) {
+            return reject(new Error('Usuário não encontrado após bind bem sucedido.'));
+          }
+
+          // Verificar se o grupo está no memberOf
+          // LDAP_GROUP_TREE_DN="OU=Administradores,DC=inb,DC=gov,DC=br"
+          const adminGroup = process.env.LDAP_GROUP_TREE_DN;
+          const memberOf = userFound.memberOf;
+          
+          let isAuthorized = false;
+          if (adminGroup) {
+            if (Array.isArray(memberOf)) {
+              isAuthorized = memberOf.some((group: string) => group.includes(adminGroup) || group === adminGroup);
+            } else if (typeof memberOf === 'string') {
+              isAuthorized = memberOf.includes(adminGroup) || memberOf === adminGroup;
+            }
+          } else {
+            // Se não houver grupo definido, apenas o login com sucesso basta
+            isAuthorized = true;
+          }
+
+          // Fallback para lista hardcoded se necessário
+          const adminUsers = process.env.ADMIN_USERS ? process.env.ADMIN_USERS.split(',').map(u => u.trim()) : [];
+          if (adminUsers.includes(username)) {
+            isAuthorized = true;
+          }
+
+          if (isAuthorized) {
+            resolve({
+              username: username,
+              displayName: userFound.displayName || userFound.cn || username,
+              authenticated: true
+            });
+          } else {
+            reject(new Error('Usuário autenticado, mas não possui permissão de administrador.'));
+          }
+        });
+      });
+    });
+  });
+}
+
+// --- LOGIN ENDPOINT ---
+
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password are required' });
+    return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
   }
 
-  // Simulate authentication for testing
-  // In a real implementation, this would validate against Active Directory
-  if (username && password) {
+  try {
+    // Tenta autenticação real via LDAP
+    console.log(`🔍 Tentando login LDAP para: ${username}`);
+    const userData = await authenticateLDAP(username, password);
+    console.log('✅ Login LDAP bem sucedido:', userData.username);
+    
     return res.json({
       success: true,
-      user: {
-        username: username,
-        displayName: username,
-        authenticated: true
-      }
+      user: userData
     });
-  } else {
-    return res.status(401).json({ error: 'Invalid credentials' });
+  } catch (error: any) {
+    console.error('❌ Erro de autenticação:', error.message);
+    
+    // Fallback para desenvolvimento local se LDAP falhar ou não estiver disponível
+    if (!process.env.LDAP_URL || process.env.NODE_ENV === 'development') {
+      console.log('⚠️ Fallback para modo teste (Credenciais conferem?)');
+      if (username === 'admin' && password === 'admin') {
+         return res.json({
+          success: true,
+          user: { username: 'admin', displayName: 'Administrador (Fallback)', authenticated: true }
+        });
+      }
+    }
+
+    return res.status(401).json({ error: error.message || 'Falha na autenticação' });
   }
 });
 

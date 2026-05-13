@@ -140,60 +140,56 @@ export default function App() {
 
       {!isAuthenticated ? (
         // Login Screen
-        console.log('🔍 Renderizando tela de login') || (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className="flex items-center justify-center min-h-screen bg-surface"
-          >
-            <div className="w-full max-w-md p-4">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2">
-                  FileGuard Pro
-                </h1>
-                <p className="text-white/60">
-                  Sistema de Gerenciamento de Servidor de Arquivos
-                </p>
-              </div>
-              <Login onLogin={handleLogin} />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          className="flex items-center justify-center min-h-screen bg-surface"
+        >
+          <div className="w-full max-w-md p-4">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-white mb-2">
+                FileGuard Pro
+              </h1>
+              <p className="text-white/60">
+                Sistema de Gerenciamento de Servidor de Arquivos
+              </p>
             </div>
-          </motion.div>
-        )
+            <Login onLogin={handleLogin} />
+          </div>
+        </motion.div>
       ) : (
         // Main Application
-        console.log('🔍 Renderizando aplicação principal') || (
-          <>
-            <Sidebar 
-              activeScreen={activeScreen} 
-              onScreenChange={(s) => {
-                console.log('🔍 Screen change:', s);
-                setActiveScreen(s);
-                setShowPermissions(false);
-              }}
-              onLogout={handleLogout}
-              user={user}
-            />
+        <>
+          <Sidebar 
+            activeScreen={activeScreen} 
+            onScreenChange={(s) => {
+              console.log('🔍 Screen change:', s);
+              setActiveScreen(s);
+              setShowPermissions(false);
+            }}
+            onLogout={handleLogout}
+            user={user}
+          />
+          
+          <div className="flex-1 ml-64 flex flex-col min-h-screen relative z-10">
+            <TopBar user={user} onLogout={handleLogout} />
             
-            <div className="flex-1 ml-64 flex flex-col min-h-screen relative z-10">
-              <TopBar user={user} onLogout={handleLogout} />
-              
-              <main className="flex-1 p-8">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={showPermissions ? 'perm-view' : activeScreen}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {renderScreen()}
-                  </motion.div>
-                </AnimatePresence>
-              </main>
-            </div>
-          </>
-        )
+            <main className="flex-1 p-8">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={showPermissions ? 'perm-view' : activeScreen}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {renderScreen()}
+                </motion.div>
+              </AnimatePresence>
+            </main>
+          </div>
+        </>
       )}
     </div>
   );
