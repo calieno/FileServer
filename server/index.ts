@@ -1,4 +1,5 @@
 import express from 'express';
+import os from 'node:os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import dotenv from 'dotenv';
@@ -299,6 +300,72 @@ app.post('/api/files/permissions', async (req, res) => {
     res.status(500).json({ error: (error as Error).message });
   }
 });
+
+app.get('/api/system/stats', async (req, res) => {
+  try {
+    const uptimeSeconds = os.uptime();
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const memPercent = ((usedMem / totalMem) * 100).toFixed(1);
+
+    // CPU load (1 min average)
+    const loadAvg = os.loadavg()[0];
+    const cpuPercent = ((loadAvg / (os.cpus().length || 1)) * 100).toFixed(1);
+
+    // Disk usage for root
+    const { stdout: dfOut } = await execAsync('df -h / --output=size,used,avail,pcent | tail -1');
+    const [diskSize, diskUsed, diskAvail, diskPcent] = dfOut.trim().split(/\s+/);
+
+    // Network stats
+    let netSpeed = { rx: '0 KB/s', tx: '0 KB/s' };
+    try {
+      const { stdout: netInit } = await execAsync('cat /proc/net/dev | grep eth0 || cat /proc/net/dev | head -n 3 | tail -n 1');
+      await new Promise(r => setTimeout(r, 1000));
+      const { stdout: netFinal } = await execAsync('cat /proc/net/dev | grep eth0 || cat /proc/net/dev | head -n 3 | tail -n 1');
+      
+      const parseNet = (line: string) => {
+        const parts = line.trim().split(/\s+/);
+        return { rx: parseInt(parts[1]), tx: parseInt(parts[9]) };
+      };
+      
+      const init = parseNet(netInit);
+      const final = parseNet(netFinal);
+      netSpeed = {
+        rx: ((final.rx - init.rx) / 1024).toFixed(1) + ' KB/s',
+        tx: ((final.tx - init.tx) / 1024).toFixed(1) + ' KB/s'
+      };
+    } catch (e) {
+      console.warn('Network stats failed:', e);
+    }
+
+    res.json({
+      cpu: cpuPercent,
+      memory: {
+        total: (totalMem / (1024 ** 3)).toFixed(1) + 'GB',
+        used: (usedMem / (1024 ** 3)).toFixed(1) + 'GB',
+        percent: memPercent
+      },
+      disk: {
+        size: diskSize,
+        used: diskUsed,
+        avail: diskAvail,
+        percent: diskPcent.replace('%', '')
+      },
+      network: netSpeed,
+      uptime: formatUptime(uptimeSeconds)
+    });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+function formatUptime(seconds: number) {
+  const d = Math.floor(seconds / (3600 * 24));
+  const h = Math.floor((seconds % (3600 * 24)) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${d}d ${h}h ${m}m`;
+}
 
 app.listen(PORT, () => {
   console.log(`Backend FileServer rodando em http://localhost:${PORT}`);

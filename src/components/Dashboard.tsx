@@ -1,4 +1,4 @@
-import { Database, TrendingUp, RefreshCw, ShieldAlert, Upload, Trash2, Edit3, MoreVertical } from 'lucide-react';
+import { Database, TrendingUp, RefreshCw, ShieldAlert, Upload, Trash2, Edit3, MoreVertical, Activity } from 'lucide-react';
 import type { StorageStat, ActivityLog, SecurityEvent, DiskInfo } from '../types';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
@@ -16,13 +16,27 @@ const activityLogs: ActivityLog[] = [
 ];
 
 export default function Dashboard() {
+  const [stats, setStats] = useState<any>(null);
   const [disks, setDisks] = useState<DiskInfo[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/system/disk')
+    // Fetch disk details (legacy)
+    fetch('/api/system/disk')
       .then(res => res.json())
       .then(data => setDisks(data))
       .catch(err => console.error(err));
+
+    // Fetch comprehensive stats
+    const fetchStats = () => {
+      fetch('/api/system/stats')
+        .then(res => res.json())
+        .then(data => setStats(data))
+        .catch(err => console.error(err));
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 3000); // Update every 3s
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -32,13 +46,47 @@ export default function Dashboard() {
           <h2 className="text-3xl font-bold tracking-tight text-white">Visão Geral do Sistema</h2>
           <p className="text-white/60 font-medium">Status em tempo real do Servidor de Arquivos Debian 11</p>
         </div>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 border border-white/20 bg-white/5 text-white rounded-xl text-sm font-semibold hover:bg-white/10 transition-colors shadow-sm">Gerar Relatório</button>
-          <button className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-primary/20">Manutenção do Servidor</button>
+        <div className="flex gap-2 text-xs font-mono text-white/40 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+          UPTIME: <span className="text-primary font-bold">{stats?.uptime || '---'}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
+        {/* Real-time Metrics */}
+        <div className="col-span-12 grid grid-cols-4 gap-6">
+          {[
+            { label: 'Uso de CPU', value: (stats?.cpu || '0') + '%', trend: 'Healthy', Icon: Activity, color: 'text-primary' },
+            { label: 'Memória RAM', value: stats?.memory?.percent + '%', trend: `${stats?.memory?.used} / ${stats?.memory?.total}`, Icon: RefreshCw, color: 'text-white' },
+            { label: 'Disco (Root)', value: stats?.disk?.percent + '%', trend: `${stats?.disk?.used} usados`, Icon: Database, color: 'text-white' },
+            { label: 'Rede (RX/TX)', value: stats?.network?.rx || '0', trend: stats?.network?.tx || '0', Icon: TrendingUp, color: 'text-accent' },
+          ].map((item, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.1 }}
+              className="p-6 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-xl"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest">{item.label}</p>
+                <div className={`p-2 rounded-lg bg-white/5 ${item.color}`}>
+                  <item.Icon size={16} />
+                </div>
+              </div>
+              <p className="text-3xl font-black text-white mb-1">{item.value}</p>
+              <p className="text-xs font-medium text-white/40">{item.trend}</p>
+              
+              <div className="mt-4 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: item.value.includes('%') ? item.value : '50%' }}
+                  className={`h-full ${item.color.replace('text-', 'bg-')}`}
+                />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
         {/* Storage Distribution */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -46,10 +94,10 @@ export default function Dashboard() {
           className="col-span-12 lg:col-span-8 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl"
         >
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-lg font-bold text-white">Distribuição de Armazenamento</h3>
+            <h3 className="text-lg font-bold text-white">Partições do Sistema</h3>
             <div className="flex items-center gap-2 text-primary font-bold text-xs bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
               <Database size={14} />
-              {disks[0]?.usePercent || '0%'} de Capacidade
+              {stats?.disk?.percent || '0'}% em Uso
             </div>
           </div>
 

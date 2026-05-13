@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderOpen, Users, Activity, Plus, Settings, HelpCircle, LogOut, HardDrive, PieChart } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Users, Activity, Plus, Settings, HelpCircle, LogOut, HardDrive, PieChart, User } from 'lucide-react';
 import type { Screen } from '../types';
 
 interface SidebarProps {
@@ -58,11 +58,9 @@ export default function Sidebar({ activeScreen, onScreenChange, onLogout, user }
         </button>
 
          <div className="flex items-center gap-3 p-3 mt-4 bg-white/5 rounded-2xl border border-white/10">
-           <img
-             src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop"
-             alt="Avatar Admin"
-             className="w-9 h-9 rounded-full object-cover border border-white/20"
-           />
+           <div className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 border border-white/20 text-white">
+             <User size={18} />
+           </div>
            <div className="overflow-hidden flex-1">
              <p className="text-sm font-semibold text-white truncate">
                {user?.displayName || 'Admin User'}
