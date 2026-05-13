@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Shield, User, Lock } from 'lucide-react';
 
 interface LoginProps {
@@ -10,20 +10,54 @@ export default function Login({ onLogin }: LoginProps) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [renderCount, setRenderCount] = useState(0);
+
+  // Debug: Verificar se o componente está renderizando
+  console.log('🔍 Login component renderizado - Count:', renderCount);
+  
+  // Debug: Verificar props
+  console.log('🔍 Login props:', { onLogin: typeof onLogin });
+
+  useEffect(() => {
+    setRenderCount(prev => prev + 1);
+    console.log('🔍 Login useEffect executado - Render count:', renderCount + 1);
+    
+    // Verificar se o onLogin é uma função
+    if (typeof onLogin !== 'function') {
+      console.error('❌ ERRO CRÍTICO: onLogin não é uma função:', typeof onLogin, onLogin);
+      setError('Erro na configuração do sistema');
+    }
+  }, [onLogin, renderCount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔍 handleSubmit chamado');
+    
     setIsLoading(true);
     setError('');
 
     // Simular login para teste
     setTimeout(() => {
-      onLogin({
-        username: username || 'admin',
-        displayName: username || 'Administrador Teste'
-      });
+      console.log('🔍 Login simulado iniciado');
+      try {
+        const userData = {
+          username: username || 'admin',
+          displayName: username || 'Administrador Teste'
+        };
+        console.log('🔍 Enviando dados para onLogin:', userData);
+        onLogin(userData);
+        console.log('🔍 onLogin chamado com sucesso');
+      } catch (err) {
+        console.error('❌ ERRO ao chamar onLogin:', err);
+        setError('Erro ao processar login');
+      } finally {
+        setIsLoading(false);
+      }
     }, 1000);
   };
+
+  // Debug: Verificar estado do componente
+  console.log('🔍 Estado do Login:', { username, password, isLoading, error });
 
   return (
     <div className="max-w-md w-full mx-auto">
@@ -55,7 +89,10 @@ export default function Login({ onLogin }: LoginProps) {
                 id="username"
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  console.log('🔍 username changed:', e.target.value);
+                  setUsername(e.target.value);
+                }}
                 placeholder="admin@inb.gov.br"
                 className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 required
@@ -75,7 +112,10 @@ export default function Login({ onLogin }: LoginProps) {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  console.log('🔍 password changed:', e.target.value);
+                  setPassword(e.target.value);
+                }}
                 placeholder="********"
                 className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 required
